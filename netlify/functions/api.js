@@ -1,5 +1,6 @@
 const express = require('express');
 const serverless = require('serverless-http');
+const menuItems = require('../../menu.json');
 
 const app = express();
 const router = express.Router();
