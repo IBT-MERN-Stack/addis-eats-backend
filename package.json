@@ -1,0 +1,26 @@
+{
+  "name": "addis-eats-backend",
+  "version": "1.0.0",
+  "description": "",
+  "homepage": "https://github.com/IBT-MERN-Stack/addis-eats-backend#readme",
+  "bugs": {
+    "url": "https://github.com/IBT-MERN-Stack/addis-eats-backend/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/IBT-MERN-Stack/addis-eats-backend.git"
+  },
+  "license": "ISC",
+  "author": "Eyasu Teshome",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "serverless-http": "^4.0.0"
+  }
+}
