@@ -1,0 +1,85 @@
+### 1. No Body (400 Bad Request)
+POST http://localhost:8080/orders
+Content-Type: application/json
+# Expect: 400 Bad Request -> {"error":{"message":"malformed JSON body or unknown field"}}
+
+
+### 2. Wrong Content-Type (400 Bad Request)
+POST http://localhost:8080/orders
+Content-Type: text/plain
+
+{"area":"Bole","phone":"0911223344","dish_ids":["d1"]}
+# Expect: 400 Bad Request
+
+
+### 3. Extra Unknown Field (400 Bad Request)
+POST http://localhost:8080/orders
+Content-Type: application/json
+
+{
+  "area": "Bole",
+  "phone": "0911223344",
+  "dish_ids": ["d1"],
+  "discount": 50
+}
+# Expect: 400 Bad Request (Triggered by dec.DisallowUnknownFields())
+
+
+### 4. Over-large Body (> 1MB) (400 Bad Request)
+POST http://localhost:8080/orders
+Content-Type: application/json
+
+{
+  "area": "Bole",
+  "phone": "0911223344",
+  "dish_ids": ["d1"]
+}
+# Expect: 400 Bad Request (Triggered by http.MaxBytesReader)
+
+
+### 5. Empty Dish List (400 Bad Request)
+POST http://localhost:8080/orders
+Content-Type: application/json
+
+{
+  "area": "Bole",
+  "phone": "0911223344",
+  "dish_ids": []
+}
+# Expect: 400 Bad Request -> {"error":{"message":"dish_ids must not be empty"}}
+
+
+### 6. Unknown Dish ID (400 Bad Request)
+POST http://localhost:8080/orders
+Content-Type: application/json
+
+{
+  "area": "Bole",
+  "phone": "0911223344",
+  "dish_ids": ["d999"]
+}
+# Expect: 400 Bad Request -> {"error":{"message":"unknown dish d999"}}
+
+
+### 7. Duplicated Dish ID (201 Created - Validly Priced Twice)
+POST http://localhost:8080/orders
+Content-Type: application/json
+
+{
+  "area": "Bole",
+  "phone": "0911223344",
+  "dish_ids": ["d1", "d1"]
+}
+# Expect: 201 Created -> Prices 2 items of Doro Wat correctly
+
+
+### 8. Unserved Delivery Area "Ayat" (400 Bad Request)
+POST http://localhost:8080/orders
+Content-Type: application/json
+
+{
+  "area": "Ayat",
+  "phone": "0911223344",
+  "dish_ids": ["d1"]
+}
+# Expect: 400 Bad Request -> {"error":{"message":"we do not deliver to Ayat"}}
