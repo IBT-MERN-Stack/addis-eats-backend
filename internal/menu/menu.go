@@ -2,28 +2,28 @@ package menu
 
 import "errors"
 
-// ErrNotFound is returned when a dish ID does not exist in the store.
 var ErrNotFound = errors.New("dish not found")
 
+// Allowed sort fields for safety against invalid parameters
+var SortFields = []string{"name", "-name", "price", "-price"}
 
-
-
-// Dish represents a menu item with price stored strictly in integer santim.
 type Dish struct {
 	ID          string `json:"id"`
 	Name        string `json:"name"`
 	PriceSantim int    `json:"price_santim"`
 	IsFasting   bool   `json:"is_fasting"`
-	CostSantim  int    `json:"-"` // Excluded from JSON output
+	CostSantim  int    `json:"-"`
 }
 
-// DishReader defines the read contract for dishes.
+// Query carries filter and sort specifications down to the store.
+// Fasting uses a *bool pointer to distinguish between "not set" (nil) and "false" (&false).
+type Query struct {
+	Fasting *bool
+	Sort    string
+}
+
 type DishReader interface {
 	All() ([]Dish, error)
 	ByID(id string) (Dish, error)
+	Filter(q Query) ([]Dish, error)
 }
-
-
-
-
-

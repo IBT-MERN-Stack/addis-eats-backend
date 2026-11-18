@@ -1,13 +1,16 @@
 package menu
 
-import "sync"
+import (
+	"sort"
+	"strings"
+	"sync"
+)
 
 type MemoryStore struct {
 	mu     sync.RWMutex
 	dishes []Dish
 }
 
-// NewMemoryStore initializes the 8 standard Addis Eats dishes.
 func NewMemoryStore() DishReader {
 	return &MemoryStore{
 		dishes: []Dish{
@@ -24,13 +27,7 @@ func NewMemoryStore() DishReader {
 }
 
 func (s *MemoryStore) All() ([]Dish, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	// Initialized with make to prevent JSON null serialization on empty slices
-	dst := make([]Dish, 0, len(s.dishes))
-	dst = append(dst, s.dishes...)
-	return dst, nil
+	return s.Filter(Query{Sort: "name"})
 }
 
 func (s *MemoryStore) ByID(id string) (Dish, error) {
@@ -43,4 +40,40 @@ func (s *MemoryStore) ByID(id string) (Dish, error) {
 		}
 	}
 	return Dish{}, ErrNotFound
+}
+
+func (s *MemoryStore) Filter(q Query) ([]Dish, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	var result []Dish
+	for _, d := range s.dishes {
+		if q.Fasting != nil && d.IsFasting != *q.Fasting {
+			continue
+		}
+		result = append(result, d)
+	}
+
+	// Always return an initialized slice so JSON marshals as [] rather than null
+	if result == nil {
+		result = make([]Dish, 0)
+	}
+
+	// Sort logic
+	sort.Slice(result, func(i, j int) bool {
+		switch q.Sort {
+		case "-name":
+			return strings.Compare(result[i].Name, result[j].Name) > 0
+		case "price":
+			return result[i].PriceSantim < result[j].PriceSantim
+		case "-price":
+			return result[i].PriceSantim > result[j].PriceSantim
+		case "name":
+			fallthrough
+		default:
+			return strings.Compare(result[i].Name, result[j].Name) < 0
+		}
+	})
+
+	return result, nil
 }

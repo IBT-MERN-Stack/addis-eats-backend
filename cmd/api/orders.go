@@ -6,56 +6,21 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/IBT-MERN-STACK/addis-eats-backend/internal/delivery"
 	"github.com/IBT-MERN-STACK/addis-eats-backend/internal/menu"
 	"github.com/IBT-MERN-STACK/addis-eats-backend/internal/order"
+	"github.com/IBT-MERN-STACK/addis-eats-backend/internal/delivery"
 )
 
-// Wire request struct keeps client from providing prices or totals
 type createOrderRequest struct {
 	Area    string   `json:"area"`
 	Phone   string   `json:"phone"`
 	DishIDs []string `json:"dish_ids"`
 }
 
-func (app *application) health(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, envelope{
-		"data": map[string]string{
-			"status":      "available",
-			"environment": "development",
-		},
-	})
-}
-
-func (app *application) listDishes(w http.ResponseWriter, r *http.Request) {
-	dishes, err := app.dishes.All()
-	if err != nil {
-		app.serverError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, envelope{"data": dishes})
-}
-
-
-func (app *application) showDish(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("id")
-	dish, err := app.dishes.ByID(id)
-	switch {
-	case errors.Is(err, menu.ErrNotFound):
-		app.notFound(w, "dish not found")
-	case err != nil:
-		app.serverError(w, err)
-	default:
-		writeJSON(w, http.StatusOK, envelope{"data": dish})
-	}
-}
-
 func (app *application) createOrder(w http.ResponseWriter, r *http.Request) {
-   
-	// Limit body payload to 1MB
 	r.Body = http.MaxBytesReader(w, r.Body, 1_048_576)
-
 	var in createOrderRequest
+
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&in); err != nil {
@@ -68,7 +33,6 @@ func (app *application) createOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Lookup dishes from store to guarantee server-controlled pricing
 	items := make([]menu.Dish, 0, len(in.DishIDs))
 	for _, id := range in.DishIDs {
 		d, err := app.dishes.ByID(id)
@@ -95,7 +59,29 @@ func (app *application) createOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Set Location header prior to writing status code
 	w.Header().Set("Location", "/orders/"+o.ID)
 	writeJSON(w, http.StatusCreated, envelope{"data": o})
+}
+
+// showOrder implements the parse-delegate-respond pattern.
+func (app *application) showOrder(w http.ResponseWriter, r *http.Request) {
+	// 1. Parse
+	id, err := readID(r)
+	if err != nil {
+		app.notFound(w, "order not found")
+		return
+	}
+
+	// 2. Delegate
+	o, err := app.orders.ByID(id)
+
+	// 3. Map and Respond
+	switch {
+	case errors.Is(err, order.ErrNotFound):
+		app.notFound(w, "order not found")
+	case err != nil:
+		app.serverError(w, err)
+	default:
+		writeJSON(w, http.StatusOK, envelope{"data": o})
+	}
 }

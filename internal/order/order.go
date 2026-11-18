@@ -8,16 +8,17 @@ import (
 	"github.com/IBT-MERN-STACK/addis-eats-backend/internal/menu"
 )
 
-var ErrEmptyOrder = errors.New("order must contain at least one item")
-
-
+var (
+	ErrEmptyOrder = errors.New("order must contain at least one item")
+	ErrNotFound   = errors.New("order not found")
+)
 
 type Order struct {
 	ID          string      `json:"id"`
 	Area        string      `json:"area"`
 	Phone       string      `json:"phone"`
 	Items       []menu.Dish `json:"items"`
-	Status      string      `json:"status"`
+	Status      Status      `json:"status"`
 	TotalSantim int         `json:"total_santim"`
 	PlacedAt    time.Time   `json:"placed_at"`
 }
@@ -27,11 +28,10 @@ func New(area, phone string, items []menu.Dish) Order {
 		Area:   area,
 		Phone:  phone,
 		Items:  items,
-		Status: "placed",
+		Status: Placed,
 	}
 }
 
-// ComputeTotal calculates pricing rules and populates the TotalSantim struct field.
 func (o *Order) ComputeTotal() (int, error) {
 	if len(o.Items) == 0 {
 		return 0, ErrEmptyOrder
@@ -43,9 +43,9 @@ func (o *Order) ComputeTotal() (int, error) {
 	}
 
 	serviceFee := int(float64(subtotal) * 0.05)
-
 	deliveryFee := 0
-	if subtotal < 50000 { // Free delivery for orders >= 50,000 santim (500 ETB)
+
+	if subtotal < 50000 {
 		fee, err := delivery.FeeSantim(o.Area)
 		if err != nil {
 			return 0, err

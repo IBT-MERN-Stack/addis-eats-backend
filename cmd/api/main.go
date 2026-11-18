@@ -26,7 +26,7 @@ func main() {
 	}
 
 	srv := &http.Server{
-		Addr:         ":8080",
+		Addr:         ":8081",
 		Handler:      app.routes(),
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
@@ -35,7 +35,4 @@ func main() {
 
 	logger.Printf("starting server on %s", srv.Addr)
 	logger.Fatal(srv.ListenAndServe())
-
-
-
 }

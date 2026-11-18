@@ -10,6 +10,7 @@ import (
 
 type Store interface {
 	Create(o *Order) error
+	ByID(id string) (Order, error)
 }
 
 type MemoryStore struct {
@@ -17,14 +18,11 @@ type MemoryStore struct {
 	orders map[string]*Order
 }
 
-
-
 func NewMemoryStore() Store {
 	return &MemoryStore{
 		orders: make(map[string]*Order),
 	}
 }
-
 
 func newID() string {
 	b := make([]byte, 2)
@@ -40,4 +38,15 @@ func (s *MemoryStore) Create(o *Order) error {
 	o.PlacedAt = time.Now().UTC()
 	s.orders[o.ID] = o
 	return nil
+}
+
+func (s *MemoryStore) ByID(id string) (Order, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	o, ok := s.orders[id]
+	if !ok {
+		return Order{}, ErrNotFound
+	}
+	return *o, nil
 }
