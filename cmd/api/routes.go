@@ -2,22 +2,27 @@ package main
 
 import "net/http"
 
+// routes defines the application's central routing table.
+// TEACHING NOTE (REST Naming):
+// 1. Plural Nouns: Endpoints use `/v1/dishes` instead of `/v1/menu` or `/v1/createOrder` [13, 14].
+// 2. Explicit Version Prefix: `/v1` guarantees backward compatibility as APIs evolve [15, 16].
+// 3. Catch-All Route: Catch-all `"/"` guarantees unmapped URLs answer with JSON error envelopes.
 func (app *application) routes() http.Handler {
 	mux := http.NewServeMux()
 
-	// system
-	mux.HandleFunc("GET /health", app.health)
+	// System Endpoints
+	mux.HandleFunc("GET /v1/health", app.health)
 
-	// menu
-	mux.HandleFunc("GET /menu", app.listDishes)
-	mux.HandleFunc("GET /menu/{id}", app.showDish)
+	// Dishes Collection & Resource Endpoints
+	mux.HandleFunc("GET /v1/dishes", app.listDishes)
+	mux.HandleFunc("GET /v1/dishes/{id}", app.showDish)
 
-	// orders
-	mux.HandleFunc("POST /orders", app.createOrder)
-	mux.HandleFunc("GET /orders/{id}", app.showOrder)
+	// Orders Collection & Resource Endpoints
+	mux.HandleFunc("POST /v1/orders", app.createOrder)
+	mux.HandleFunc("GET /v1/orders/{id}", app.showOrder)
+	mux.HandleFunc("PATCH /v1/orders/{id}", app.patchOrder)
 
-	
-	// catch-all unmatched routes to guarantee JSON error response
+	// Catch-all Unmatched Route
 	mux.HandleFunc("/", app.notFoundRoute)
 
 	return mux
@@ -32,6 +37,7 @@ func (app *application) health(w http.ResponseWriter, r *http.Request) {
 		"data": map[string]string{
 			"status":      "available",
 			"environment": "development",
+			"version":     "v1",
 		},
 	})
 }

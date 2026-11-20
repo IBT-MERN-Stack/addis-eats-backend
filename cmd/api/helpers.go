@@ -12,8 +12,10 @@ import (
 
 var errInvalidID = errors.New("invalid id format")
 
+// envelope wraps all JSON outputs into a standardized top-level map [11].
 type envelope map[string]any
 
+// writeJSON standardizes Content-Type headers and JSON encoding across all endpoints.
 func writeJSON(w http.ResponseWriter, status int, data envelope) {
 	js, err := json.Marshal(data)
 	if err != nil {
@@ -42,7 +44,12 @@ func (app *application) badRequest(w http.ResponseWriter, msg string) {
 	writeError(w, http.StatusBadRequest, msg)
 }
 
-// readID validates path params (length <= 32, alphanumeric + hyphen).
+// conflict returns HTTP 409 Conflict when a request is valid but contradicts domain state [7, 8].
+func (app *application) conflict(w http.ResponseWriter, msg string) {
+	writeError(w, http.StatusConflict, msg)
+}
+
+// readID validates path parameters (alphanumeric + hyphen, <= 32 chars).
 func readID(r *http.Request) (string, error) {
 	id := r.PathValue("id")
 	if id == "" || len(id) > 32 {
@@ -61,6 +68,18 @@ func readString(qs url.Values, key, def string) string {
 		return v
 	}
 	return def
+}
+
+func readInt(qs url.Values, key string, defaultValue int) (int, error) {
+	v := qs.Get(key)
+	if v == "" {
+		return defaultValue, nil
+	}
+	i, err := strconv.Atoi(v)
+	if err != nil {
+		return 0, err
+	}
+	return i, nil
 }
 
 func readBool(qs url.Values, key string) (value, ok bool) {

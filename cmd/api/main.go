@@ -19,14 +19,16 @@ type application struct {
 func main() {
 	logger := log.New(os.Stdout, "", log.LstdFlags)
 
+	// Inject dependencies into application struct
 	app := &application{
 		logger: logger,
 		dishes: menu.NewMemoryStore(),
 		orders: order.NewMemoryStore(),
 	}
 
+	// Configure server with explicit connection timeouts to prevent slowloris attacks
 	srv := &http.Server{
-		Addr:         ":8081",
+		Addr:         ":8080",
 		Handler:      app.routes(),
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,

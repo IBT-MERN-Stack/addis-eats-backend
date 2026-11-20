@@ -13,13 +13,14 @@ var (
 	ErrNotFound   = errors.New("order not found")
 )
 
+// Order represents an active food delivery order.
 type Order struct {
 	ID          string      `json:"id"`
 	Area        string      `json:"area"`
 	Phone       string      `json:"phone"`
 	Items       []menu.Dish `json:"items"`
-	Status      Status      `json:"status"`
-	TotalSantim int         `json:"total_santim"`
+	Status      Status      `json:"status"` // Custom enum type with custom JSON marshaling
+	TotalSantim int         `json:"total_santim"` // Money remains integer santim across calculation and output
 	PlacedAt    time.Time   `json:"placed_at"`
 }
 
@@ -28,10 +29,13 @@ func New(area, phone string, items []menu.Dish) Order {
 		Area:   area,
 		Phone:  phone,
 		Items:  items,
-		Status: Placed,
+		Status: StatusPlaced,
 	}
 }
 
+// ComputeTotal calculates pricing, 5% service fees, and delivery fees.
+// TEACHING NOTE: Pricing logic is calculated on the server using validated dish data.
+// Clients must never supply item prices or totals in request payloads.
 func (o *Order) ComputeTotal() (int, error) {
 	if len(o.Items) == 0 {
 		return 0, ErrEmptyOrder
@@ -43,9 +47,9 @@ func (o *Order) ComputeTotal() (int, error) {
 	}
 
 	serviceFee := int(float64(subtotal) * 0.05)
-	deliveryFee := 0
 
-	if subtotal < 50000 {
+	deliveryFee := 0
+	if subtotal < 50000 { // Free delivery for subtotals >= 50,000 santim (500 ETB)
 		fee, err := delivery.FeeSantim(o.Area)
 		if err != nil {
 			return 0, err
