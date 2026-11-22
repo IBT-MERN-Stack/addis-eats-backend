@@ -4,6 +4,9 @@ import "errors"
 
 var ErrUnservedArea = errors.New("unserved delivery area")
 
+// ServedAreas acts as the single source of truth for valid delivery zones [20, 21].
+var ServedAreas = []string{"Bole", "Kazanchis", "Piassa", "Megenagna"}
+
 var feeTable = map[string]int{
 	"Bole":      3000,
 	"Kazanchis": 3500,

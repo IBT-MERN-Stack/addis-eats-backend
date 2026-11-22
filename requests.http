@@ -1,56 +1,42 @@
-### 1. No Body (400 Bad Request)
-POST http://localhost:8080/orders
+### 1. Multiple Validation Failures (Expect 422 with 3 Field Errors)
+POST http://localhost:8080/v1/orders
 Content-Type: application/json
-# Expect: 400 Bad Request -> {"error":{"message":"malformed JSON body or unknown field"}}
+
+{
+  "area": "Ayat",
+  "phone": "9112233",
+  "dish_ids": ["d1", "d1"]
+}
+
+# Expect: HTTP 422 Unprocessable Entity
+# Response:
+# {
+#   "error": {
+#     "message": "the request was not valid",
+#     "fields": {
+#       "area": "must be a served delivery area",
+#       "dish_ids": "must not contain duplicates",
+#       "phone": "must be a valid TeleBirr number"
+#     }
+#   }
+# }
 
 
-### 2. Wrong Content-Type (400 Bad Request)
-POST http://localhost:8080/orders
-Content-Type: text/plain
-
-{"area":"Bole","phone":"0911223344","dish_ids":["d1"]}
-# Expect: 400 Bad Request
-
-
-### 3. Extra Unknown Field (400 Bad Request)
-POST http://localhost:8080/orders
+### 2. Normalised Phone Success (+251911223344 -> 0911223344)
+POST http://localhost:8080/v1/orders
 Content-Type: application/json
 
 {
   "area": "Bole",
-  "phone": "0911223344",
-  "dish_ids": ["d1"],
-  "discount": 50
+  "phone": "+251911223344",
+  "dish_ids": ["d1", "d2"]
 }
-# Expect: 400 Bad Request (Triggered by dec.DisallowUnknownFields())
+
+# Expect: HTTP 201 Created -> "phone": "0911223344"
 
 
-### 4. Over-large Body (> 1MB) (400 Bad Request)
-POST http://localhost:8080/orders
-Content-Type: application/json
-
-{
-  "area": "Bole",
-  "phone": "0911223344",
-  "dish_ids": ["d1"]
-}
-# Expect: 400 Bad Request (Triggered by http.MaxBytesReader)
-
-
-### 5. Empty Dish List (400 Bad Request)
-POST http://localhost:8080/orders
-Content-Type: application/json
-
-{
-  "area": "Bole",
-  "phone": "0911223344",
-  "dish_ids": []
-}
-# Expect: 400 Bad Request -> {"error":{"message":"dish_ids must not be empty"}}
-
-
-### 6. Unknown Dish ID (400 Bad Request)
-POST http://localhost:8080/orders
+### 3. Unknown Dish ID (Expect 422 Unprocessable Entity)
+POST http://localhost:8080/v1/orders
 Content-Type: application/json
 
 {
@@ -58,28 +44,6 @@ Content-Type: application/json
   "phone": "0911223344",
   "dish_ids": ["d999"]
 }
-# Expect: 400 Bad Request -> {"error":{"message":"unknown dish d999"}}
 
-
-### 7. Duplicated Dish ID (201 Created - Validly Priced Twice)
-POST http://localhost:8080/orders
-Content-Type: application/json
-
-{
-  "area": "Bole",
-  "phone": "0911223344",
-  "dish_ids": ["d1", "d1"]
-}
-# Expect: 201 Created -> Prices 2 items of Doro Wat correctly
-
-
-### 8. Unserved Delivery Area "Ayat" (400 Bad Request)
-POST http://localhost:8080/orders
-Content-Type: application/json
-
-{
-  "area": "Ayat",
-  "phone": "0911223344",
-  "dish_ids": ["d1"]
-}
-# Expect: 400 Bad Request -> {"error":{"message":"we do not deliver to Ayat"}}
+# Expect: HTTP 422 Unprocessable Entity
+# Response: {"error":{"fields":{"dish_ids":"dish d999 does not exist"},"message":"the request was not valid"}}
