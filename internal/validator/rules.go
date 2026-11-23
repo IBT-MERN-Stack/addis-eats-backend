@@ -1,6 +1,12 @@
+package validator
+
 const MaxOrderSantim = 5_000_00 // 5,000.00 ETB
 
-func (in createDishRequest) Validate(v *validator.Validator) {
+type createDishRequest struct {
+	PriceSantim int `json:"price_santim" validate:"required,min=1,max=500000,modulo=25"`
+}
+
+func (in createDishRequest) Validate(v *Validator) {
 	v.Check(in.PriceSantim > 0,
 		"price_santim", "must be greater than zero")
 	v.Check(in.PriceSantim <= MaxOrderSantim,
