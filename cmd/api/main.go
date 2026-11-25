@@ -4,13 +4,19 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/IBT-MERN-STACK/addis-eats-backend/internal/menu"
 	"github.com/IBT-MERN-STACK/addis-eats-backend/internal/order"
 )
 
+type config struct {
+	origins []string
+}
+
 type application struct {
+	config config
 	logger *log.Logger
 	dishes menu.DishReader
 	orders order.Store
@@ -19,14 +25,20 @@ type application struct {
 func main() {
 	logger := log.New(os.Stdout, "", log.LstdFlags)
 
-	// Inject dependencies into application struct
+	// Load allowed CORS origins from environment variable (default to dev frontend) [16]
+	rawOrigins := os.Getenv("CORS_ORIGINS")
+	if rawOrigins == "" {
+		rawOrigins = "http://localhost:3000"
+	}
+	origins := strings.Split(rawOrigins, ",")
+
 	app := &application{
+		config: config{origins: origins},
 		logger: logger,
 		dishes: menu.NewMemoryStore(),
 		orders: order.NewMemoryStore(),
 	}
 
-	// Configure server with explicit connection timeouts to prevent slowloris attacks
 	srv := &http.Server{
 		Addr:         ":8080",
 		Handler:      app.routes(),

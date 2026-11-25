@@ -9,32 +9,36 @@ import (
 	"github.com/IBT-MERN-STACK/addis-eats-backend/internal/validator"
 )
 
-// failedValidation formats field-level validation failures into a 422 JSON envelope [3].
-func (app *application) failedValidation(w http.ResponseWriter, fields map[string]string) {
-	writeJSON(w, http.StatusUnprocessableEntity, envelope{
+func writeErrorWithReqID(w http.ResponseWriter, r *http.Request, status int, message string) {
+	writeJSON(w, status, envelope{
 		"error": map[string]any{
-			"message": "the request was not valid",
-			"fields":  fields,
+			"message":    message,
+			"request_id": requestIDFrom(r), // Includes correlation ID in error responses [12]
 		},
 	})
 }
 
-// handleError acts as the single exit door for handler errors.
-// It maps internal domain errors to appropriate HTTP status codes [10, 11].
-func (app *application) handleError(w http.ResponseWriter, err error) {
+func (app *application) failedValidation(w http.ResponseWriter, r *http.Request, fields map[string]string) {
+	writeJSON(w, http.StatusUnprocessableEntity, envelope{
+		"error": map[string]any{
+			"message":    "the request was not valid",
+			"fields":     fields,
+			"request_id": requestIDFrom(r),
+		},
+	})
+}
+
+func (app *application) handleError(w http.ResponseWriter, r *http.Request, err error) {
 	var vErr *validator.Error
 	switch {
 	case errors.As(err, &vErr):
-		// 422 Unprocessable Entity for validation failures [10]
-		app.failedValidation(w, vErr.Fields)
+		app.failedValidation(w, r, vErr.Fields)
 	case errors.Is(err, menu.ErrNotFound), errors.Is(err, order.ErrNotFound):
-		// 404 Not Found for missing resources [10]
-		app.notFound(w, "resource not found")
+		writeErrorWithReqID(w, r, http.StatusNotFound, "resource not found")
 	case errors.Is(err, order.ErrIllegalTransition):
-		// 409 Conflict for invalid state machine steps [10]
-		app.conflict(w, err.Error())
+		writeErrorWithReqID(w, r, http.StatusConflict, err.Error())
 	default:
-		// 500 Internal Server Error for unmapped server bugs (logged in full) [10, 22]
-		app.serverError(w, err)
+		app.logger.Println("SERVER ERROR:", err)
+		writeErrorWithReqID(w, r, http.StatusInternalServerError, "internal error")
 	}
 }

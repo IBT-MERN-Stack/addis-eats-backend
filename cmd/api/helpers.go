@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -9,6 +11,13 @@ import (
 	"strconv"
 	"unicode"
 )
+
+// newID generates a cryptographically random 16-byte hex string for request correlation IDs.
+func newID() string {
+	b := make([]byte, 16)
+	_, _ = rand.Read(b)
+	return hex.EncodeToString(b)
+}
 
 var errInvalidID = errors.New("invalid id format")
 

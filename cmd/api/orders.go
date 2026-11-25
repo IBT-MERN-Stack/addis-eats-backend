@@ -66,7 +66,7 @@ func (app *application) createOrder(w http.ResponseWriter, r *http.Request) {
 	v := validator.New()
 	in.Validate(v)
 	if !v.Valid() {
-		app.failedValidation(w, v.Errors) // 422 Unprocessable Entity [2, 23]
+		app.failedValidation(w, r, v.Errors) // 422 Unprocessable Entity [2, 23]
 		return
 	}
 
@@ -77,7 +77,7 @@ func (app *application) createOrder(w http.ResponseWriter, r *http.Request) {
 		d, err := app.dishes.ByID(id)
 		if err != nil {
 			vErr.Fields["dish_ids"] = fmt.Sprintf("dish %s does not exist", id)
-			app.handleError(w, vErr)
+			app.handleError(w, r, vErr)
 			return
 		}
 		items = append(items, d)
@@ -87,11 +87,11 @@ func (app *application) createOrder(w http.ResponseWriter, r *http.Request) {
 	o := order.New(in.Area, in.Phone, items)
 	_, err := o.ComputeTotal()
 	if err != nil {
-		app.handleError(w, err)
+		app.handleError(w, r, err)
 		return
 	}
 	if err := app.orders.Create(&o); err != nil {
-		app.handleError(w, err)
+		app.handleError(w, r, err)
 		return
 	}
 
@@ -108,7 +108,7 @@ func (app *application) showOrder(w http.ResponseWriter, r *http.Request) {
 
 	o, err := app.orders.ByID(id)
 	if err != nil {
-		app.handleError(w, err)
+		app.handleError(w, r, err)
 		return
 	}
 
@@ -132,13 +132,13 @@ func (app *application) patchOrder(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if in.Status == nil {
-		app.failedValidation(w, map[string]string{"status": "must be provided"})
+		app.failedValidation(w, r, map[string]string{"status": "must be provided"})
 		return
 	}
 
 	updatedOrder, err := app.orders.UpdateStatus(id, *in.Status)
 	if err != nil {
-		app.handleError(w, err) // Maps ErrIllegalTransition to 409 Conflict [10]
+		app.handleError(w, r, err) // Maps ErrIllegalTransition to 409 Conflict [10]
 		return
 	}
 
